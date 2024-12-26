@@ -1,43 +1,59 @@
-# https://chatgpt.com/c/676d165d-b5f8-800f-b8a5-10d0d1670ce4
-# assume that
-# We have a graph
-# In the input of the first hazard, first we enter the number of vertices and the number of edges with a space, and then we enter the edges in the next n line, now we have to do dfs or bfs on it and see if we can reach all the vertices or not.
-# change code based on this
-from collections import defaultdict, deque
+class UnionFind:
+    def __init__(self, size):
+        self.parent = list(range(size + 1))
+        self.rank = [0] * (size + 1)
 
-def build_graph(n, m, edges):
-    graph = defaultdict(list)
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def union(self, x, y):
+        px, py = self.find(x), self.find(y)
+        if px == py:
+            return False
+        if self.rank[px] < self.rank[py]:
+            px, py = py, px
+        self.parent[py] = px
+        if self.rank[px] == self.rank[py]:
+            self.rank[px] += 1
+        return True
+
+
+def is_connected(n, edges):
+    if not edges:
+        return False
+
+    uf = UnionFind(n)
+    components = n
+
     for u, v in edges:
-        graph[u].append(v)
-        graph[v].append(u)
-    return graph
+        if uf.union(u, v):
+            components -= 1
 
-def bfs(graph, start, n):
-    visited = [False] * (n + 1)
-    queue = deque([start])
-    visited[start] = True
+    return components == 1
 
-    while queue:
-        current = queue.popleft()
-        for neighbor in graph[current]:
-            if not visited[neighbor]:
-                visited[neighbor] = True
-                queue.append(neighbor)
-    return visited
 
-def can_reach_all_vertices(graph, n):
-    visited = bfs(graph, 1, n)
-    return all(visited[1:])
-
-def minimum_edges_to_connect(n, m, edges):
-    graph = build_graph(n, m, edges)
-    return (n - 1) if can_reach_all_vertices(graph, n) else 0
-
-def main():
+def solve():
+    # Read input
     n, m = map(int, input().split())
-    edges = [tuple(map(int, input().split())) for _ in range(m)]
-    print(minimum_edges_to_connect(n, m, edges))
+    edges = []
 
-# Main execution
-if __name__ == "__main__":
-    main()
+    # Read edges
+    for _ in range(m):
+        u, v = map(int, input().split())
+        edges.append((u, v))
+
+    # Check base cases
+    if m < n - 1 or n <= 1:
+        print(0)
+        return
+
+    # Check if graph is connected using Union-Find
+    if is_connected(n, edges):
+        print(n - 1)  # Minimum number of edges needed for a connected graph
+    else:
+        print(0)  # Cannot make it connected using subset of existing edges
+
+
+solve()
