@@ -1,94 +1,110 @@
 from collections import deque
-from heapq import heappop, heappush
 
+# Directions for moving in 4 directions (up, down, left, right)
+directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-def bfs_to_find_region(grid, start, n, m, region_id, visited):
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    queue = deque([start])
-    region_cells = []
+def bfs(start_positions, n, m, grid):
+    # Distance from the numbered houses
+    distances = [[float('inf')] * m for _ in range(n)]
+    queue = deque()
+
+    # Adding the numbered houses to the queue
+    for x, y in start_positions:
+        queue.append((x, y))
+        distances[x][y] = 0
 
     while queue:
         x, y = queue.popleft()
-        region_cells.append((x, y))
-
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < n and 0 <= ny < m and not visited[nx][ny]:
-                if grid[nx][ny] in {'1', '2', '3'} or grid[nx][ny] == '.':
-                    visited[nx][ny] = True
-                    queue.append((nx, ny))
-
-    return region_cells
-
-
-def build_distance_matrix(grid, regions, n, m):
-    distances = [[float('inf')] * len(regions) for _ in range(len(regions))]
-
-    for i, region_cells in enumerate(regions):
-        visited = [[False] * m for _ in range(n)]
-        queue = deque([(x, y, 0) for x, y in region_cells])
-
-        while queue:
-            x, y, d = queue.popleft()
-
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < n and 0 <= ny < m and not visited[nx][ny]:
-                    visited[nx][ny] = True
-
-                    if grid[nx][ny] in {'1', '2', '3'}:
-                        for j, other_region in enumerate(regions):
-                            if (nx, ny) in other_region and i != j:
-                                distances[i][j] = min(distances[i][j], d)
-                                distances[j][i] = distances[i][j]
-                    elif grid[nx][ny] == '.':
-                        queue.append((nx, ny, d + 1))
+            if 0 <= nx < n and 0 <= ny < m and grid[nx][ny] != '#' and distances[nx][ny] == float('inf'):
+                distances[nx][ny] = distances[x][y] + 1
+                queue.append((nx, ny))
 
     return distances
 
+def min_distance_between_groups(start_positions_1, start_positions_2, n, m, grid):
+    # BFS for each group
+    dist_1 = bfs(start_positions_1, n, m, grid)
+    dist_2 = bfs(start_positions_2, n, m, grid)
 
-def min_road_constructions(n, m, grid):
-    regions = []
-    visited = [[False] * m for _ in range(n)]
-
-    # Find all regions
+    # Finding the minimum distance between the groups
+    min_distance = float('inf')
     for i in range(n):
         for j in range(m):
-            if grid[i][j] in {'1', '2', '3'} and not visited[i][j]:
-                visited[i][j] = True
-                region_cells = bfs_to_find_region(grid, (i, j), n, m, len(regions), visited)
-                regions.append(region_cells)
+            if grid[i][j] == '.':
+                min_distance = min(min_distance, dist_1[i][j] + dist_2[i][j])
 
-    # If there are fewer than 3 regions, return -1
-    if len(regions) < 3:
-        return -1
+    return min_distance if min_distance != float('inf') else -1
 
-    # Build distance matrix
-    distances = build_distance_matrix(grid, regions, n, m)
+def process_map(n, m, grid):
+    # List of numbered houses
+    start_positions_1 = []
+    start_positions_2 = []
+    start_positions_3 = []
 
-    # Use Prim's algorithm to find the minimum spanning tree
-    pq = [(0, 0)]
-    total_cost = 0
-    visited_regions = set()
+    for i in range(n):
+        for j in range(m):
+            if grid[i][j] == '1':
+                start_positions_1.append((i, j))
+            elif grid[i][j] == '2':
+                start_positions_2.append((i, j))
+            elif grid[i][j] == '3':
+                start_positions_3.append((i, j))
 
-    while pq and len(visited_regions) < len(regions):
-        cost, region = heappop(pq)
-        if region in visited_regions:
-            continue
+    # Calculating the minimum distances between groups
+    dist_1_2 = min_distance_between_groups(start_positions_1, start_positions_2, n, m, grid) - 1
+    dist_2_3 = min_distance_between_groups(start_positions_2, start_positions_3, n, m, grid) - 1
+    dist_1_3 = min_distance_between_groups(start_positions_1, start_positions_3, n, m, grid) - 1
 
-        visited_regions.add(region)
-        total_cost += cost
+    # Constructing edges for the minimum spanning tree
+    edges = []
+    if dist_1_2 != -1:
+        edges.append((dist_1_2, 0, 1))  # Edge between territory 1 and 2
+    if dist_2_3 != -1:
+        edges.append((dist_2_3, 1, 2))  # Edge between territory 2 and 3
+    if dist_1_3 != -1:
+        edges.append((dist_1_3, 0, 2))  # Edge between territory 1 and 3
 
-        for neighbor in range(len(regions)):
-            if neighbor not in visited_regions:
-                heappush(pq, (distances[region][neighbor], neighbor))
+    # Performing Kruskal's algorithm for minimum spanning tree
+    return min_spanning_tree(edges, 3)
 
-    return total_cost
+def min_spanning_tree(edges, num_nodes):
+    # Kruskal's algorithm for finding the minimum spanning tree
+    edges.sort()  # Sorting edges by weight
+    parent = list(range(num_nodes))  # Each node is its own parent initially
 
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
 
-# Input reading
+    def union(x, y):
+        rootX = find(x)
+        rootY = find(y)
+        if rootX != rootY:
+            parent[rootX] = rootY
+            return True
+        return False
+
+    mst_weight = 0
+    mst_edges = 0
+
+    for weight, u, v in edges:
+        if union(u, v):
+            mst_weight += weight
+            mst_edges += 1
+            if mst_edges == num_nodes - 1:
+                break
+
+    return mst_weight if mst_edges == num_nodes - 1 else -1
+
+# Input
 n, m = map(int, input().split())
-grid = [input().strip() for _ in range(n)]
+grid = [input().strip() for _ in range(n)]  # Read grid as whole lines, each line as a string
 
-# Solve and output result
-print(min_road_constructions(n, m, grid))
+# Process the map
+result = process_map(n, m, grid)
+
+# Output the result
+print(result)

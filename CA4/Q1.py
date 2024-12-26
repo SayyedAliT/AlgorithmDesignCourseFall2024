@@ -1,3 +1,5 @@
+# https://chatgpt.com/share/676d5ddb-bed4-800f-9a25-0f529109c735
+# برای حل این سوال از این الگوریتم استفاده کن که بر روی مکمل گرافی که به ما میده DFS بزن و ببین is connected هست یا نه
 from collections import defaultdict
 
 def build_graph(edges):
