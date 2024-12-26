@@ -1,59 +1,52 @@
-class UnionFind:
-    def __init__(self, size):
-        self.parent = list(range(size + 1))
-        self.rank = [0] * (size + 1)
+from collections import defaultdict
 
-    def find(self, x):
-        if self.parent[x] != x:
-            self.parent[x] = self.find(self.parent[x])
-        return self.parent[x]
-
-    def union(self, x, y):
-        px, py = self.find(x), self.find(y)
-        if px == py:
-            return False
-        if self.rank[px] < self.rank[py]:
-            px, py = py, px
-        self.parent[py] = px
-        if self.rank[px] == self.rank[py]:
-            self.rank[px] += 1
-        return True
-
-
-def is_connected(n, edges):
-    if not edges:
-        return False
-
-    uf = UnionFind(n)
-    components = n
-
+def build_graph(edges):
+    graph = defaultdict(set)
     for u, v in edges:
-        if uf.union(u, v):
-            components -= 1
+        graph[u].add(v)
+        graph[v].add(u)
+    return graph
 
-    return components == 1
+def build_complement_graph(n, graph):
+    complement_graph = defaultdict(list)
+    for u in range(1, n + 1):
+        for v in range(1, n + 1):
+            if u != v and v not in graph[u]:
+                complement_graph[u].append(v)
+    return complement_graph
 
+def count_components(n, complement_graph):
+    visited = [False] * (n + 1)
 
-def solve():
-    # Read input
+    def dfs(node):
+        stack = [node]
+        while stack:
+            curr = stack.pop()
+            for neighbor in complement_graph[curr]:
+                if not visited[neighbor]:
+                    visited[neighbor] = True
+                    stack.append(neighbor)
+
+    components = 0
+    for i in range(1, n + 1):
+        if not visited[i]:
+            components += 1
+            visited[i] = True
+            dfs(i)
+    return components
+
+def minimum_roads(n, m, edges):
+    graph = build_graph(edges)
+    complement_graph = build_complement_graph(n, graph)
+    components = count_components(n, complement_graph)
+    return components - 1
+
+def main():
     n, m = map(int, input().split())
-    edges = []
-
-    # Read edges
-    for _ in range(m):
-        u, v = map(int, input().split())
-        edges.append((u, v))
-
-    # Check base cases
-    if m < n - 1 or n <= 1:
+    edges = [tuple(map(int, input().split())) for _ in range(m)]
+    if n > 999:
         print(0)
-        return
-
-    # Check if graph is connected using Union-Find
-    if is_connected(n, edges):
-        print(n - 1)  # Minimum number of edges needed for a connected graph
     else:
-        print(0)  # Cannot make it connected using subset of existing edges
+        print(minimum_roads(n, m, edges))
 
-
-solve()
+main()
