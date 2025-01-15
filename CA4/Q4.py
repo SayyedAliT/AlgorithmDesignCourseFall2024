@@ -25,46 +25,43 @@ class UnionFind:
 def kruskal_with_mandatory_edges(n, edges, mandatory_edges):
     uf = UnionFind(n)
     mst_cost = 0
+    added_edges = 0
 
-    # First add all mandatory edges to the union-find structure
+    # Add mandatory edges first
     for u, v, w in mandatory_edges:
-       if uf.union(u, v):
-            mst_cost += w
-       else:
-            return "NO"
-
-    # Sort the remaining edges by weight
-    copy_edge = edges.copy()
-    copy_edge.sort(key=lambda x: x[2])
-
-    # Add the remaining edges while checking for cycles and accumulating cost
-    for u, v, w in copy_edge:
         if uf.union(u, v):
             mst_cost += w
+            added_edges += 1
+        else:
+            return float('inf')  # Cycle detected, invalid MST
 
-    return mst_cost
+    # Add remaining edges to complete MST
+    for u, v, w in edges:
+        if added_edges == n - 1:
+            break
+        if uf.union(u, v):
+            mst_cost += w
+            added_edges += 1
+
+    return mst_cost if added_edges == n - 1 else float('inf')
 
 def can_include_bridges(n, m, edges, queries):
-    # Step 1: Compute initial MST cost with all edges
-    initial_mst_cost = kruskal_with_mandatory_edges(n, sorted(edges, key=lambda x: x[2]), [])
-
+    edges = sorted(edges, key=lambda x: x[2])  # Sort edges by weight
     results = []
 
     for query in queries:
         k_i = query[0]
         requested_bridges_indices = query[1:k_i + 1]
 
-        # Create a list of requested edges
-        requested_edges = [(edges[idx - 1][0], edges[idx - 1][1], edges[idx - 1][2]) for idx in requested_bridges_indices]
-
-        # Create a list of remaining edges
+        # Prepare mandatory edges and remaining edges
+        mandatory_edges = [edges[idx - 1] for idx in requested_bridges_indices]
         remaining_edges = [edges[i] for i in range(m) if (i + 1) not in requested_bridges_indices]
 
-        # Step 3: Run Kruskal's algorithm on combined edges to get new MST cost with mandatory edges
-        new_mst_cost = kruskal_with_mandatory_edges(n, remaining_edges, requested_edges)
+        # Calculate MST cost with mandatory edges
+        new_mst_cost = kruskal_with_mandatory_edges(n, remaining_edges, mandatory_edges)
 
-        # Step 4: Compare costs with initial MST cost
-        if new_mst_cost == initial_mst_cost:
+        # Check if MST is valid and matches the initial MST
+        if new_mst_cost != float('inf'):
             results.append("YES")
         else:
             results.append("NO")
@@ -73,31 +70,40 @@ def can_include_bridges(n, m, edges, queries):
 
 # Input Handling
 def main():
+    import sys
+    input = sys.stdin.read
+    data = input().split()
+    index = 0
+
     # Read number of islands and bridges
-    n, m = map(int, input().split())
+    n, m = int(data[index]), int(data[index + 1])
+    index += 2
 
     edges = []
 
     # Read the bridges information
     for _ in range(m):
-        u, v, w = map(int, input().split())
+        u, v, w = int(data[index]), int(data[index + 1]), int(data[index + 2])
         edges.append((u - 1, v - 1, w))  # Convert to zero-indexed
+        index += 3
 
     # Read number of queries
-    q = int(input())
+    q = int(data[index])
+    index += 1
 
     queries = []
 
     # Read each query
     for _ in range(q):
-        query_data = list(map(int, input().split()))
+        query_data = list(map(int, data[index:index + 1 + int(data[index])]))
         queries.append(query_data)
+        index += 1 + int(data[index])
 
     # Function Call to get results
     results = can_include_bridges(n, m, edges, queries)
 
     # Print results for each query
-    print("\n".join(results))
+    sys.stdout.write("\n".join(results) + "\n")
 
 if __name__ == "__main__":
     main()
