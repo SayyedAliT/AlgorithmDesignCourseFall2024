@@ -107,29 +107,24 @@ class MaxFlowSolver:
             a, b = map(int, input().split())
             self.graph.add_edge(self.graph.nodes[a - 1], self.graph.nodes[b - 1])
 
-        def solve(self):
-            source = self.graph.nodes[0]
-            sink = self.graph.nodes[-1]
-            self.graph.ford_fulkerson(source, sink)
-            max_flow = self.graph.get_max_flow(source)
-            print(max_flow)
+    def solve(self):
+        source = self.graph.nodes[0]
+        sink = self.graph.nodes[-1]
+        self.graph.ford_fulkerson(source, sink)
+        max_flow = self.graph.get_max_flow(source)
+        print(max_flow)
 
-            self.print_all_paths(source, sink, max_flow)
-
-        def print_all_paths(self, source, sink, max_flow):
-            for _ in range(max_flow):
-                path = self.graph.get_path_with_cost(source, sink)
-                self.print_path(path)
-
-        def print_path(self, path):
+        for _ in range(max_flow):
+            path = self.graph.get_path_with_cost(source, sink)
             print(len(path))
-            path_str = ' '.join(str(node.name + 1) for node in path)
-            print(path_str)
+            print(' '.join(str(node.name + 1) for node in path))
 
-    def main():
-        solver = MaxFlowSolver()
-        solver.read_input()
-        solver.solve()
 
-    if __name__ == "__main__":
-        main()
+def main():
+    solver = MaxFlowSolver()
+    solver.read_input()
+    solver.solve()
+
+
+if __name__ == "__main__":
+    main()
